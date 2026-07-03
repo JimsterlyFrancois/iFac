@@ -1,37 +1,63 @@
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User.js';
+import { getDatabase } from '../config/database.js';
 
 export const authenticate = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Token manquant ou invalide' });
     }
+
+    const token = authHeader.split(' ')[1];
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId);
 
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+    const db = getDatabase();
+
+    db.get(
+      `SELECT id, email, faculty, option, level, is_admin, is_active
+       FROM users WHERE id = ?`,
+      [decoded.userId],
+      (err, user) => {
+        if (err) {
+          return res.status(500).json({ error: 'Erreur serveur' });
+        }
+
+        if (!user) {
+          return res.status(401).json({ error: 'Utilisateur introuvable' });
+        }
+
+        if (user.is_active === 0) {
+          return res.status(403).json({ error: 'Compte désactivé' });
+        }
+
+        req.user = user;
+        next();
+      }
+    );
+  } catch (error) {
+    return res.status(401).json({ error: 'Token invalide ou expiré' });
+  }
+};
+
+export const authorizeAdmin = (req, res, next) => {
+  if (!req.user || req.user.is_admin !== 1) {
+    return res.status(403).json({ error: 'Accès refusé (admin requis)' });
+  }
+  next();
+};
+
+export const authorizeOptionAccess = (allowedOptions = []) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Non authentifié' });
     }
 
-    req.user = user;
+    if (allowedOptions.length > 0 && !allowedOptions.includes(req.user.option)) {
+      return res.status(403).json({ error: 'Accès non autorisé pour votre filière' });
+    }
+
     next();
-  } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-};
-
-export const authorize = async (req, res, next) => {
-  if (!req.user?.is_admin) {
-    return res.status(403).json({ error: 'Access denied. Admin only.' });
-  }
-  next();
-};
-
-export const checkRestriction = async (req, res, next) => {
-  if (!User.canAccessDocuments(req.user.option)) {
-    return res.status(403).json({ error: 'Access restricted for your option' });
-  }
-  next();
+  };
 };
