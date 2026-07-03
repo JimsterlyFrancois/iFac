@@ -3,13 +3,22 @@
   "version": "1.0.0",
   "type": "module",
   "description": "iFac - University Document Management System Backend",
-  "main": "index.js",
+  "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
-    "db:seed": "node scripts/seed.js"
+    "db:seed": "node scripts/seed.js",
+    "db:reset": "rm -rf data/ifac.db && npm run db:seed",
+    "lint": "echo \"Lint not configured yet\"",
+    "security:audit": "npm audit",
+    "clean": "rm -rf node_modules package-lock.json"
   },
-  "keywords": ["document", "management", "university"],
+  "keywords": [
+    "document",
+    "management",
+    "university",
+    "ifac"
+  ],
   "author": "JimsterlyFrancois",
   "license": "MIT",
   "dependencies": {
