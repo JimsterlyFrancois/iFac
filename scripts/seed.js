@@ -1,5 +1,4 @@
 import { getDatabase } from '../config/database.js';
-import { User } from './User.js';
 import bcrypt from 'bcryptjs';
 
 const seedDatabase = async () => {
@@ -7,35 +6,94 @@ const seedDatabase = async () => {
 
   return new Promise((resolve, reject) => {
     db.serialize(() => {
-      // Admin user
-      const adminPassword = bcrypt.hashSync('admin123', 10);
-      db.run(
-        `INSERT OR IGNORE INTO users (email, password_hash, faculty, option, level, is_admin, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        ['jimsterlyfrancois@gmail.com', adminPassword, 'FSE', 'Psychopédagogie', 'L4', 1, 1]
-      );
+      console.log('🌱 Initialisation de la base de données...');
 
-      // Test users
-      const userPassword = bcrypt.hashSync('user123', 10);
-      
-      db.run(
-        `INSERT OR IGNORE INTO users (email, password_hash, faculty, option, level, is_admin, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        ['student1@example.com', userPassword, 'FSE', 'Psychopédagogie', 'L1', 0, 1]
-      );
+      // ============================
+      // Compte Administrateur
+      // ============================
+      const adminPassword = bcrypt.hashSync('Admin@2026', 10);
 
       db.run(
-        `INSERT OR IGNORE INTO users (email, password_hash, faculty, option, level, is_admin, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        ['student2@example.com', userPassword, 'FSE', 'Administration Scolaire', 'L2', 0, 1],
-        (err) => {
-          if (err) reject(err);
-          else {
-            console.log('✅ Database seeded successfully');
-            resolve();
-          }
+        `INSERT OR IGNORE INTO users
+        (email, password_hash, faculty, option, level, is_admin, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          'jimsterlyfrancois@gmail.com',
+          adminPassword,
+          "Faculté des Sciences de l'Éducation",
+          'Psychopédagogie',
+          'L4',
+          1,
+          1
+        ]
+      );
+
+      console.log('✅ Compte administrateur créé.');
+
+      // ============================
+      // Mot de passe des comptes de démonstration
+      // ============================
+      const studentPassword = bcrypt.hashSync('Etudiant@2026', 10);
+
+      const students = [
+        [
+          'etudiant.l1@upnch.ht',
+          studentPassword,
+          "Faculté des Sciences de l'Éducation",
+          'Psychopédagogie',
+          'L1',
+          0,
+          1
+        ],
+        [
+          'etudiant.l2@upnch.ht',
+          studentPassword,
+          "Faculté des Sciences de l'Éducation",
+          'Psychopédagogie',
+          'L2',
+          0,
+          1
+        ],
+        [
+          'etudiant.l3@upnch.ht',
+          studentPassword,
+          "Faculté des Sciences de l'Éducation",
+          'Psychopédagogie',
+          'L3',
+          0,
+          1
+        ],
+        [
+          'etudiant.l4@upnch.ht',
+          studentPassword,
+          "Faculté des Sciences de l'Éducation",
+          'Psychopédagogie',
+          'L4',
+          0,
+          1
+        ]
+      ];
+
+      const stmt = db.prepare(
+        `INSERT OR IGNORE INTO users
+        (email, password_hash, faculty, option, level, is_admin, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`
+      );
+
+      students.forEach((student) => {
+        stmt.run(student);
+      });
+
+      stmt.finalize((err) => {
+        if (err) {
+          reject(err);
+          return;
         }
-      );
+
+        console.log('✅ Comptes étudiants créés.');
+        console.log('🎉 Base de données initialisée avec succès.');
+        resolve();
+      });
     });
   });
 };
