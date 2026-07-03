@@ -14,38 +14,60 @@ export const initializeDatabase = async () => {
 
   if (dbType === 'sqlite') {
     return initializeSQLite();
-  } else if (dbType === 'postgres') {
-    return initializePostgres();
-  } else {
-    throw new Error(`Unsupported database type: ${dbType}`);
   }
+
+  if (dbType === 'postgres') {
+    return initializePostgres();
+  }
+
+  throw new Error(`Unsupported database type: ${dbType}`);
 };
 
 const initializeSQLite = () => {
   return new Promise((resolve, reject) => {
-    const dbPath = process.env.DB_PATH || './data/ifac.db';
-    const dir = path.dirname(dbPath);
+    try {
+      const dbPath = process.env.DB_PATH || './data/ifac.db';
+      const dir = path.dirname(dbPath);
 
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
 
-    db = new sqlite3.Database(dbPath, (err) => {
-      if (err) reject(err);
-      console.log('✅ Connected to SQLite database');
+      db = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+          console.error('❌ SQLite connection error:', err);
+          return reject(err);
+        }
 
-      db.serialize(() => {
-        const schemaPath = path.join(__dirname, '../database/schema.sql');
-        const schema = fs.readFileSync(schemaPath, 'utf8');
-        db.exec(schema, (err) => {
-          if (err) reject(err);
-          else {
-            console.log('✅ Database schema initialized');
-            resolve(db);
+        console.log('✅ Connected to SQLite database');
+
+        db.serialize(() => {
+          try {
+            const schemaPath = path.join(__dirname, '../database/schema.sql');
+
+            if (!fs.existsSync(schemaPath)) {
+              throw new Error(`Schema file not found: ${schemaPath}`);
+            }
+
+            const schema = fs.readFileSync(schemaPath, 'utf8');
+
+            db.exec(schema, (err) => {
+              if (err) {
+                console.error('❌ Schema execution error:', err);
+                return reject(err);
+              }
+
+              console.log('✅ Database schema initialized');
+              resolve(db);
+            });
+          } catch (err) {
+            reject(err);
           }
         });
       });
-    });
+    } catch (err) {
+      reject(err);
+    }
   });
 };
 
@@ -59,11 +81,16 @@ const initializePostgres = () => {
   });
 
   pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
+    console.error('❌ PostgreSQL idle error:', err);
   });
 
   console.log('✅ Connected to PostgreSQL database');
   return pool;
 };
 
-export const getDatabase = () => db;
+export const getDatabase = () => {
+  if (!db) {
+    throw new Error('Database not initialized. Call initializeDatabase first.');
+  }
+  return db;
+};
