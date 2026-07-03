@@ -1,8 +1,14 @@
 import { getDatabase } from '../config/database.js';
+import path from 'path';
 
 export class Document {
+
+  // =========================
+  // CREATE DOCUMENT
+  // =========================
   static async create(documentData) {
     const db = getDatabase();
+
     const {
       title,
       description,
@@ -17,19 +23,31 @@ export class Document {
       uploaded_by,
     } = documentData;
 
-    // Vérifier que le fichier est PDF ou Word
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowedTypes.includes(file_type)) {
-      throw new Error('Only PDF and Word documents are allowed');
+    // Validation basique serveur
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+
+    const fileExtension = path.extname(file_name).toLowerCase();
+    const allowedExtensions = ['.pdf', '.doc', '.docx'];
+
+    if (
+      !allowedTypes.includes(file_type) ||
+      !allowedExtensions.includes(fileExtension)
+    ) {
+      throw new Error('Format de fichier non autorisé');
     }
 
     return new Promise((resolve, reject) => {
       const query = `
         INSERT INTO documents 
-        (title, description, file_url, file_name, file_size, file_type, 
+        (title, description, file_url, file_name, file_size, file_type,
          target_faculty, target_option, target_level, category, uploaded_by)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
+
       db.run(
         query,
         [
@@ -45,33 +63,49 @@ export class Document {
           category,
           uploaded_by,
         ],
-        function(err) {
-          if (err) reject(err);
-          else resolve({ id: this.lastID, ...documentData });
+        function (err) {
+          if (err) return reject(err);
+
+          resolve({
+            id: this.lastID,
+            ...documentData,
+          });
         }
       );
     });
   }
 
+  // =========================
+  // FIND BY ID
+  // =========================
   static async findById(id) {
     const db = getDatabase();
+
     return new Promise((resolve, reject) => {
-      const query = 'SELECT * FROM documents WHERE id = ? AND is_active = 1';
-      db.get(query, [id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row || null);
-      });
+      db.get(
+        'SELECT * FROM documents WHERE id = ? AND is_active = 1',
+        [id],
+        (err, row) => {
+          if (err) return reject(err);
+          resolve(row || null);
+        }
+      );
     });
   }
 
-  // CORE BUSINESS LOGIC: Targeted Distribution
+  // =========================
+  // USER DOCUMENT FEED
+  // =========================
   static async findForUser(user, limit = 20, offset = 0) {
     const db = getDatabase();
-    const { faculty, option, level } = user;
+
+    // sécurité pagination
+    limit = Math.min(Math.max(limit, 1), 50);
+    offset = Math.max(offset, 0);
 
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT * FROM documents 
+        SELECT * FROM documents
         WHERE is_active = 1
           AND target_faculty = ?
           AND target_option = ?
@@ -79,69 +113,104 @@ export class Document {
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
       `;
-      db.all(query, [faculty, option, level, limit, offset], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
+
+      db.all(
+        query,
+        [user.faculty, user.option, user.level, limit, offset],
+        (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows || []);
+        }
+      );
     });
   }
 
+  // =========================
+  // COUNT USER DOCUMENTS
+  // =========================
   static async countForUser(user) {
     const db = getDatabase();
-    const { faculty, option, level } = user;
 
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT COUNT(*) as total FROM documents 
+        SELECT COUNT(*) as total FROM documents
         WHERE is_active = 1
           AND target_faculty = ?
           AND target_option = ?
           AND (target_level = ? OR target_level = 'ALL')
       `;
-      db.get(query, [faculty, option, level], (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.total || 0);
-      });
+
+      db.get(
+        query,
+        [user.faculty, user.option, user.level],
+        (err, row) => {
+          if (err) return reject(err);
+          resolve(row?.total || 0);
+        }
+      );
     });
   }
 
+  // =========================
+  // ADMIN VIEW ALL
+  // =========================
   static async findAll(limit = 20, offset = 0) {
     const db = getDatabase();
+
+    limit = Math.min(Math.max(limit, 1), 50);
+    offset = Math.max(offset, 0);
+
     return new Promise((resolve, reject) => {
-      const query = `
-        SELECT * FROM documents 
+      db.all(
+        `
+        SELECT * FROM documents
         WHERE is_active = 1
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
-      `;
-      db.all(query, [limit, offset], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
+        `,
+        [limit, offset],
+        (err, rows) => {
+          if (err) return reject(err);
+          resolve(rows || []);
+        }
+      );
     });
   }
 
-  // Les utilisateurs NE PEUVENT PAS modifier les documents
-  // Seuls les admins peuvent faire cela
+  // =========================
+  // SOFT DELETE
+  // =========================
   static async delete(id) {
     const db = getDatabase();
+
     return new Promise((resolve, reject) => {
-      const query = 'UPDATE documents SET is_active = 0 WHERE id = ?';
-      db.run(query, [id], function(err) {
-        if (err) reject(err);
-        else resolve(true);
-      });
+      db.run(
+        'UPDATE documents SET is_active = 0 WHERE id = ?',
+        [id],
+        function (err) {
+          if (err) return reject(err);
+          resolve(true);
+        }
+      );
     });
   }
 
-  static trackDownload(userId, documentId) {
+  // =========================
+  // TRACK DOWNLOAD
+  // =========================
+  static async trackDownload(userId, documentId) {
     const db = getDatabase();
+
     return new Promise((resolve, reject) => {
-      const query = 'INSERT INTO document_downloads (user_id, document_id) VALUES (?, ?)';
-      db.run(query, [userId, documentId], function(err) {
-        if (err) reject(err);
-        else resolve(true);
-      });
+      db.run(
+        `INSERT INTO document_downloads (user_id, document_id)
+         VALUES (?, ?)`,
+        [userId, documentId],
+        function (err) {
+          if (err) return reject(err);
+          resolve(true);
+        }
+      );
     });
   }
 }
