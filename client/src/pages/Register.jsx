@@ -2,11 +2,23 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';  
 import api from '../api/axios';  
 import { useAuthStore } from '../store/auth';  
+
+const academicMatrix = {
+  FSE: [
+    'Psychopédagogie',
+    'Administration Scolaire',
+    'Mathématiques et Physique',
+    'Histoire et Géographie',
+  ],
+  'ESSAP/MT/TS': ['Santé Publique', 'Médecine Tropicale', 'Travail Social'],
+  ESUTH: ['Gestion Touristique', 'Hôtellerie et Restauration'],
+  FDSPRI: ['Sciences Juridiques', 'Science Politique', 'Relations Internationales'],
+};
   
 export default function Register() {  
   const [form, setForm] = useState({  
     email: '', password: '',  
-    faculty: "Faculté des Sciences de l'Éducation",  
+    faculty: 'FSE',
     option: 'Psychopédagogie',  
     level: 'L1',  
   });  
@@ -15,7 +27,14 @@ export default function Register() {
   const login = useAuthStore((s) => s.login);  
   const navigate = useNavigate();  
   
-  const update = (e) => setForm({ ...form, [e.target.name]: e.target.value });  
+  const update = (e) => {
+    const { name, value } = e.target;
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === 'faculty' ? { option: academicMatrix[value][0] } : {}),
+    }));
+  };
   
   const handleSubmit = async (e) => {  
     e.preventDefault();  
@@ -45,14 +64,16 @@ export default function Register() {
           type="password" name="password" placeholder="Mot de passe" value={form.password}  
           onChange={update} required className="w-full border p-2 rounded"  
         />  
-        <input  
-          type="text" name="faculty" placeholder="Faculté" value={form.faculty}  
-          onChange={update} required className="w-full border p-2 rounded"  
-        />  
-        <input  
-          type="text" name="option" placeholder="Option / Filière" value={form.option}  
-          onChange={update} required className="w-full border p-2 rounded"  
-        />  
+        <select name="faculty" value={form.faculty} onChange={update} required className="w-full border p-2 rounded">
+          {Object.keys(academicMatrix).map((faculty) => (
+            <option key={faculty} value={faculty}>{faculty}</option>
+          ))}
+        </select>
+        <select name="option" value={form.option} onChange={update} required className="w-full border p-2 rounded">
+          {academicMatrix[form.faculty].map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
         <select  
           name="level" value={form.level} onChange={update}  
           className="w-full border p-2 rounded"  
