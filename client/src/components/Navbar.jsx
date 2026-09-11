@@ -13,7 +13,7 @@ export default function Navbar() {
   return (  
     <nav className="bg-gray-800 text-white px-4 py-3">  
       <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2">  
-        <Link to="/" className="font-bold text-lg">iFac+</Link>  
+        <Link to="/" className="font-bold text-lg">iFac</Link>  
         <div className="flex flex-wrap items-center gap-3 text-sm">  
           {token ? (  
             <>  

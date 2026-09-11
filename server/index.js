@@ -87,7 +87,7 @@ app.use('/api/documents', documentRoutes);
 app.get('/api/health', (req, res) => {  
   res.json({  
     status: 'OK',  
-    service: 'iFac+ API',  
+    service: 'iFac API',  
     timestamp: new Date().toISOString()  
   });  
 });  
@@ -110,7 +110,7 @@ const startServer = async () => {
     await initializeDatabase();  
   
     app.listen(PORT, () => {  
-      console.log(`✅ iFac+ Server running on http://localhost:${PORT}`);  
+      console.log(`✅ iFac Server running on http://localhost:${PORT}`);  
     });  
   
   } catch (error) {  

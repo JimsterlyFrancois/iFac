@@ -1,7 +1,7 @@
-# iFac+ - Application de Gestion de Documents Universitaires
+# iFac - Application de Gestion de Documents Universitaires
 
 ## 📋 Description
-iFac+ est une plateforme universitaire intelligente de gestion et de distribution ciblée de documents académiques.  
+iFac est une plateforme universitaire intelligente de gestion et de distribution ciblée de documents académiques.  
 Elle fonctionne en mode **online & offline**, et est compatible web, mobile et tablette.
 
 Le système permet une distribution personnalisée des documents selon :
