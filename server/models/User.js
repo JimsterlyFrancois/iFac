@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';  
-import { query, insert } from '../config/database.js';  
+import { query, insert, execute } from '../config/database.js';  
   
 const toBool = (v) => v === true || v === 1;  
   
@@ -50,6 +50,10 @@ export class User {
     );  
     return rows[0] || null;  
   }  
+
+  static async promoteToAdmin(email) {
+    return execute('UPDATE users SET is_admin = ? WHERE email = ?', [true, email]);
+  }
   
   // =========================  
   // PASSWORD CHECK  

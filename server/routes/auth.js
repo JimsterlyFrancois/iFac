@@ -15,7 +15,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email et mot de passe requis' });
     }
 
-    const user = await User.findByEmail(email);
+    let user = await User.findByEmail(email);
 
     if (!user) {
       return res.status(401).json({ error: 'Identifiants invalides' });
@@ -25,6 +25,11 @@ router.post('/login', async (req, res) => {
 
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Identifiants invalides' });
+    }
+
+    if (user.email === process.env.ADMIN_EMAIL && !User.isAdmin(user)) {
+      await User.promoteToAdmin(user.email);
+      user = await User.findByEmail(user.email);
     }
 
     const tokenPayload = {
