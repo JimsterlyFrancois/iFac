@@ -1,10 +1,13 @@
-import { useState } from 'react';  
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';  
 import api from '../api/axios';  
+import SortBar from '../components/SortBar';
   
 export default function Documents() {  
   const [search, setSearch] = useState('');  
   const [query, setQuery] = useState('');  
+  const [category, setCategory] = useState('');
+  const [level, setLevel] = useState('');
   
   const { data, isLoading, isError } = useQuery({  
     queryKey: ['documents', query],  
@@ -15,7 +18,23 @@ export default function Documents() {
   });  
   
   const documents = data?.data || [];  
-  const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '');  
+  const filteredDocuments = useMemo(
+    () => documents.filter((document) =>
+      (!category || document.category === category) &&
+      (!level || document.target_level === level || document.target_level === 'ALL')
+    ),
+    [category, documents, level]
+  );
+
+  const openDocument = async (document) => {
+    const windowRef = window.open('', '_blank');
+    try {
+      await api.post(`/documents/${document.id}/download`);
+      windowRef.location.href = document.file_url;
+    } catch {
+      windowRef.close();
+    }
+  };
   
   return (  
     <div className="mt-6">  
@@ -37,23 +56,20 @@ export default function Documents() {
   
       {isLoading && <p>Chargement...</p>}  
       {isError && <p className="text-red-600">Erreur lors du chargement des documents.</p>}  
-      {!isLoading && documents.length === 0 && <p>Aucun document trouvé.</p>}  
+      {!isLoading && documents.length > 0 && <SortBar category={category} level={level} onCategoryChange={setCategory} onLevelChange={setLevel} />}
+      {!isLoading && filteredDocuments.length === 0 && <p>Aucun document trouvé.</p>}
   
       <div className="space-y-3">  
-        {documents.map((doc) => (  
+        {filteredDocuments.map((doc) => (
           <div key={doc.id} className="bg-white p-4 rounded shadow">  
             <h2 className="font-semibold">{doc.title}</h2>  
             <p className="text-sm text-gray-600">{doc.description}</p>  
             <p className="text-xs text-gray-400 mt-1">  
               {doc.category} — {doc.target_level}  
             </p>  
-            <a  
-              href={`${apiBase}${doc.file_url}`}  
-              target="_blank" rel="noreferrer"  
-              className="text-blue-600 text-sm hover:underline"  
-            >  
-              Ouvrir le fichier  
-            </a>  
+            <button type="button" onClick={() => openDocument(doc)} className="mt-3 rounded bg-ifac-primary px-3 py-2 text-sm font-semibold text-white hover:bg-ifac-primary-dark">
+              Ouvrir / Lire
+            </button>
           </div>  
         ))}  
       </div>  
