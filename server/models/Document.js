@@ -156,4 +156,20 @@ export class Document {
     );  
     return true;  
   }  
+
+  // =========================
+  // DOWNLOADED DOCUMENTS FOR USER
+  // =========================
+  static async findDownloadedByUser(userId) {
+    const { rows } = await query(
+      `SELECT d.*, MAX(dd.downloaded_at) AS downloaded_at
+       FROM documents d
+       INNER JOIN document_downloads dd ON dd.document_id = d.id
+       WHERE dd.user_id = ? AND d.is_active = TRUE
+       GROUP BY d.id
+       ORDER BY downloaded_at DESC`,
+      [userId]
+    );
+    return rows;
+  }
 }

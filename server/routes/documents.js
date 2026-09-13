@@ -57,6 +57,20 @@ router.get('/', authenticate, async (req, res) => {
     });  
   }  
 });  
+
+// =========================
+// GET USER DOWNLOADED DOCUMENTS
+// =========================
+router.get('/downloads', authenticate, async (req, res) => {
+  try {
+    const documents = await Document.findDownloadedByUser(req.user.id);
+    return res.json({ data: documents });
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Erreur serveur lors de la récupération des téléchargements',
+    });
+  }
+});
   
 // =========================  
 // GET DOCUMENT BY ID (SECURED)  
