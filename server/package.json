@@ -1,28 +1,21 @@
 {  
-  "name": "ifac-server",  
+  "name": "ifac",  
   "version": "1.0.0",  
+  "private": true,  
   "type": "module",  
-  "description": "iFac - University Document Management System Backend",  
-  "main": "server/index.js",  
+  "description": "iFac - Plateforme universitaire de gestion de documents",  
   "scripts": {  
-    "start": "node server/index.js",  
+    "start": "NODE_ENV=production node server/index.js",  
     "dev": "nodemon server/index.js",  
+    "client": "cd client && npm run dev",  
+    "build": "cd client && npm run build",  
     "db:migrate": "node scripts/migrate.js",  
     "db:seed": "node scripts/seed.js",  
     "db:reset": "node scripts/migrate.js && node scripts/seed.js",  
     "test": "jest --runInBand",  
     "lint": "eslint \"**/*.js\"",  
-    "security:audit": "npm audit",  
     "clean": "rm -rf node_modules package-lock.json"  
   },  
-  "keywords": [  
-    "document",  
-    "management",  
-    "university",  
-    "ifac"  
-  ],  
-  "author": "JimsterlyFrancois",  
-  "license": "MIT",  
   "dependencies": {  
     "express": "^4.18.2",  
     "sqlite3": "^5.1.6",  
