@@ -36,10 +36,18 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000')
   .map((o) => o.trim());  
   
 app.use(cors({  
-  origin: (origin, cb) =>  
-    !origin || allowedOrigins.includes(origin)  
-      ? cb(null, true)  
-      : cb(new Error('Origine non autorisée par CORS')),  
+  origin: (origin, cb) => {
+    let isCodespacesOrigin = false;
+    try {
+      isCodespacesOrigin = Boolean(origin) && new URL(origin).hostname.endsWith('.github.dev');
+    } catch {
+      isCodespacesOrigin = false;
+    }
+
+    return !origin || allowedOrigins.includes(origin) || isCodespacesOrigin
+      ? cb(null, true)
+      : cb(new Error('Origine non autorisée par CORS'));
+  },
   credentials: true,  
 }));  
   
