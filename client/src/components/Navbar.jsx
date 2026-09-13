@@ -17,7 +17,9 @@ export default function Navbar() {
         <div className="flex flex-wrap items-center gap-3 text-sm">  
           {token ? (  
             <>  
+              <Link to="/dashboard" className="hover:underline">Tableau de bord</Link>
               <Link to="/documents" className="hover:underline">Documents</Link>  
+              <Link to="/downloads" className="hover:underline">Téléchargements</Link>
               {user?.is_admin && (  
                 <Link to="/upload" className="hover:underline">Ajouter</Link>  
               )}  
